@@ -92,6 +92,7 @@ object Addons {
    */
   @js.native
   @JSName("React.addons.Perf")
+  @js.native
   object Perf extends js.Object {
     type Measurements = js.Array[Measurement]
 

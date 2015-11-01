@@ -83,8 +83,8 @@ object ScalajsReact extends Build {
 
   def useReactJs(scope: String = "compile"): PE =
     _.settings(
-      jsDependencies += "org.webjars.npm" % "react"     % "0.14.2" % scope / "react-with-addons.js" commonJSName "React"    minified "react-with-addons.min.js",
-      jsDependencies += "org.webjars.npm" % "react-dom" % "0.14.2" % scope / "react-dom.js"         commonJSName "ReactDOM" minified "react-dom.min.js"         dependsOn "react-with-addons.js",
+      jsDependencies += "org.webjars.npm" % "react"     % "0.14.3" % scope / "react-with-addons.js" commonJSName "React"    minified "react-with-addons.min.js",
+      jsDependencies += "org.webjars.npm" % "react-dom" % "0.14.3" % scope / "react-dom.js"         commonJSName "ReactDOM" minified "react-dom.min.js"         dependsOn "react-with-addons.js",
       jsDependencies += "org.webjars"     % "sizzle"    % "2.1.1"  % scope / "sizzle.min.js"        commonJSName "Sizzle",
       skip in packageJSDependencies := false)
 
@@ -128,8 +128,7 @@ object ScalajsReact extends Build {
     .settings(
       name := "core",
       libraryDependencies ++= Seq(
-        "org.scala-js"  %%% "scalajs-dom"     % "0.8.2"
-      ))
+        "org.scala-js" %%% "scalajs-dom" % "0.8.2"))
 
   lazy val extra = project
     .configure(commonSettings, publicationSettings, definesMacros, hasNoTests)

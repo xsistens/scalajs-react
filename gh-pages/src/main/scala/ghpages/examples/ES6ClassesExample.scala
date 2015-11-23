@@ -26,7 +26,7 @@ object ES6ClassesExample {
   case class Props(text: String, onChange: () => Callback)
 
   @ScalaJSDefined
-  class CustomInputC extends ReactComponent[Props, String, react.TopNode] {
+  class CustomInputC(initialProps: ReactProps) extends ReactComponent[Props, String, react.TopNode](initialProps) {
     def initialState(props: Props) = props.text
 
     def onChange(event: ReactEventI) =

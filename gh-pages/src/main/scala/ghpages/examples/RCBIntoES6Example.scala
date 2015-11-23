@@ -28,7 +28,7 @@ object RCBIntoES6Example {
     .build
 
   @ScalaJSDefined
-  class TodoListC extends ReactComponentNoState[Seq[String], TopNode] {
+  class TodoListC(initialProps: ReactProps) extends ReactComponentNoState[Seq[String], TopNode](initialProps) {
     def render() = {
       def createItem(itemText: String) = TodoListItem(itemText)
       <.ul(props map createItem)

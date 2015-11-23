@@ -30,16 +30,16 @@ object FunctionalComponent {
    * If `props` is `Unit`, there is also [[ReactComponentB.static]] which also sets `shouldComponentUpdate` to `false`
    * which should be more efficient.
    */
-  def apply[P](render: P => ReactElement): FunctionalComponent[P] = {
-    val f = (o: WrapObj[P]) => render(o.v)
-    val jf = f: js.Function1[WrapObj[P], ReactElement]
+  def apply[P](render: P => ReactElement)(implicit propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]): FunctionalComponent[P] = {
+    val f = (o: ReactProps) => render(propsConverter.fromProps(o))
+    val jf = f: js.Function1[ReactProps, ReactElement]
     jf.asInstanceOf[FunctionalComponent[P]]
   }
 
-  @inline implicit class Ops[P](private val f: FunctionalComponent[P]) extends AnyVal {
+  @inline implicit class Ops[P](private val f: FunctionalComponent[P])(implicit propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]) {
     def apply(props: P) =
       // This is what JSX/Babel does:
-      React.createElement(f, WrapObj(props))
+      React.createElement(f, propsConverter.toProps(props))
   }
 
   // ===================================================================================================================
@@ -50,15 +50,15 @@ object FunctionalComponent {
   @js.native
   sealed trait WithChildren[-P] extends js.Any
 
-  def withChildren[P](render: (P, PropsChildren) => ReactElement): WithChildren[P] = {
-    val f = (o: WrapObj[P]) => render(o.v, o.asInstanceOf[js.Dynamic].children.asInstanceOf[PropsChildren])
-    val jf = f: js.Function1[WrapObj[P], ReactElement]
+  def withChildren[P](render: (P, PropsChildren) => ReactElement)(implicit propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]): WithChildren[P] = {
+    val f = (o: ReactProps with PropsMixedIn) => render(propsConverter.fromProps(o), o.children)
+    val jf = f: js.Function1[ReactProps with PropsMixedIn, ReactElement]
     jf.asInstanceOf[WithChildren[P]]
   }
 
-  @inline implicit class WithChildrenOps[P](private val f: FunctionalComponent.WithChildren[P]) extends AnyVal {
+  @inline implicit class WithChildrenOps[P](private val f: FunctionalComponent.WithChildren[P])(implicit propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]) {
     def apply(props: P, children: ReactNode*) =
       // This is what JSX/Babel does:
-      React.createElement(f, WrapObj(props), children: _*)
+      React.createElement(f, propsConverter.toProps(props), children: _*)
   }
 }

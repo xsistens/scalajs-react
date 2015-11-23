@@ -26,7 +26,7 @@ sealed trait ReactComponentC[P, S, B, N <: TopNode] extends ReactComponentTypeAu
 
 object ReactComponentC {
 
-  sealed abstract class BaseCtor[P, S, B, N <: TopNode] extends ReactComponentC[P, S, B, N] {
+  sealed abstract class BaseCtor[P, S, B, N <: TopNode](implicit propsConverter: PropsConverter[P]) extends ReactComponentC[P, S, B, N] {
 
     type This <: BaseCtor[P, S, B, N]
 
@@ -38,11 +38,11 @@ object ReactComponentC {
     final def withKey(k: JAny)  : This = set(key = k)
     final def withRef(r: String): This = set(ref = r)
 
-    protected def mkProps(props: P): WrapObj[P] = {
-      val j = WrapObj(props)
+    protected def mkProps(props: P): ReactProps = {
+      val j = propsConverter.toProps(props)
       key.foreach(k => j.asInstanceOf[Dynamic].updateDynamic("key")(k))
       ref.foreach(r => j.asInstanceOf[Dynamic].updateDynamic("ref")(r))
-      j
+      j.asInstanceOf[ReactProps]
     }
   }
 
@@ -52,7 +52,7 @@ object ReactComponentC {
   final class ReqProps[P, S, B, N <: TopNode](override val factory: ReactComponentCU[P, S, B, N],
                                               override val reactClass: ReactClass[P, S, B, N],
                                               override protected val key: UndefOr[JAny],
-                                              override protected val ref: UndefOr[String]) extends BaseCtor[P, S, B, N] {
+                                              override protected val ref: UndefOr[String])(implicit propsConverter: PropsConverter[P]) extends BaseCtor[P, S, B, N] {
     override type This = ReqProps[P, S, B, N]
     def set(key: UndefOr[JAny] = this.key, ref: UndefOr[String] = this.ref): This =
       new ReqProps(factory, reactClass, key, ref)
@@ -63,7 +63,7 @@ object ReactComponentC {
     def withDefaultProps(p: => P) = new DefaultProps(factory, reactClass, key, ref, () => p)
 
     def noProps(implicit ev: UnitPropProof[P]): ConstProps[P, S, B, N] =
-      new ConstProps(factory, reactClass, key, ref, fnUnit0)
+      new ConstProps[P, S, B, N](factory, reactClass, key, ref, fnUnit0)
   }
 
   type UnitPropProof[P] = (() => Unit) =:= (() => P)
@@ -76,7 +76,7 @@ object ReactComponentC {
                                                   override val reactClass: ReactClass[P, S, B, N],
                                                   override protected val key: UndefOr[JAny],
                                                   override protected val ref: UndefOr[String],
-                                                  default: () => P) extends BaseCtor[P, S, B, N] {
+                                                  default: () => P)(implicit propsConverter: PropsConverter[P]) extends BaseCtor[P, S, B, N] {
     override type This = DefaultProps[P, S, B, N]
     def set(key: UndefOr[JAny] = this.key, ref: UndefOr[String] = this.ref): This =
       new DefaultProps(factory, reactClass, key, ref, default)
@@ -95,7 +95,7 @@ object ReactComponentC {
                                                 override val reactClass: ReactClass[P, S, B, N],
                                                 override protected val key: UndefOr[JAny],
                                                 override protected val ref: UndefOr[String],
-                                                props: () => P) extends BaseCtor[P, S, B, N] {
+                                                props: () => P)(implicit propsConverter: PropsConverter[P]) extends BaseCtor[P, S, B, N] {
     override type This = ConstProps[P, S, B, N]
     def set(key: UndefOr[JAny] = this.key, ref: UndefOr[String] = this.ref): This =
       new ConstProps(factory, reactClass, key, ref, props)

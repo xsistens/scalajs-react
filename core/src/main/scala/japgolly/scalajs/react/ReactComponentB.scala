@@ -1,14 +1,34 @@
 package japgolly.scalajs.react
 
+import scala.scalajs.js
 import scala.scalajs.js.{Any => JAny, Array => JArray, _}
 import Internal._
 import CompScope._
 import macros.CompBuilderMacros
 
+trait PropsConverter[P] {
+  def fromProps(p: ReactProps): P
+  def toProps(p: P): ReactProps
+}
+class DefaultPropsConverter[P] extends PropsConverter[P] {
+  override def fromProps(p: ReactProps): P = p.asInstanceOf[WrapObj[P]].v
+  override def toProps(p: P): ReactProps = WrapObj(p).asInstanceOf[ReactProps]
+}
+
+object DefaultUnitPropsConverter extends DefaultPropsConverter[Unit]
+
+class JSPropsConverter[P <: js.Object] extends PropsConverter[P] {
+  override def fromProps(p: ReactProps): P =
+    p.asInstanceOf[P]
+
+  override def toProps(p: P): ReactProps =
+    p.asInstanceOf[ReactProps]
+}
+
 abstract class LifecycleInput[P, S, +$ <: HasProps[P] with HasState[S]] {
   val $: $
   @inline final def component: $ = $
-  @inline final def currentProps: P = $._props.v
+  @inline final def currentProps: P = $._propsConverter.fromProps($._props)
   @inline final def currentState: S = $._state.v
 }
 case class ComponentWillUpdate      [P, S, +B, +N <: TopNode]($: WillUpdate[P, S, B, N],      nextProps: P, nextState: S) extends LifecycleInput[P, S, WillUpdate[P, S, B, N]]
@@ -20,7 +40,7 @@ case class ComponentWillReceiveProps[P, S, +B, +N <: TopNode]($: DuringCallbackM
  * React Component Builder.
  */
 object ReactComponentB {
-  @inline def apply[Props](name: String) = new P[Props](name)
+  @inline def apply[Props](name: String)(implicit propsConverter: PropsConverter[Props] = new DefaultPropsConverter[Props]) = new P[Props](name)
 
   // ======
   // Stages
@@ -49,13 +69,13 @@ object ReactComponentB {
   /**
    * Create a component that always displays the same content, never needs to be redrawn, never needs vdom diffing.
    */
-  def static(name: String, content: ReactElement) =
+  def static(name: String, content: ReactElement)(implicit propsConverter: PropsConverter[Unit] = new DefaultPropsConverter[Unit]) =
     staticN[TopNode](name, content)
 
   /**
    * Create a component that always displays the same content, never needs to be redrawn, never needs vdom diffing.
    */
-  def staticN[N <: TopNode](name: String, content: ReactElement) =
+  def staticN[N <: TopNode](name: String, content: ReactElement)(implicit propsConverter: PropsConverter[Unit] = new DefaultPropsConverter[Unit]) =
     ReactComponentB[Unit](name)
       .render(_ => content)
       .domType[N]
@@ -64,7 +84,7 @@ object ReactComponentB {
   private val alwaysFalse = CallbackTo.pure(false)
 
   // ===================================================================================================================
-  final class P[Props] private[ReactComponentB](name: String) {
+  final class P[Props] private[ReactComponentB](name: String)(implicit propsConverter: PropsConverter[Props]) {
 
     // getInitialState is how it's named in React
     def getInitialState  [State](f: DuringCallbackU[Props, State, Any] => State)             = getInitialStateCB[State]($ => CallbackTo(f($)))
@@ -80,7 +100,7 @@ object ReactComponentB {
   }
 
   // ===================================================================================================================
-  final class PS[P, S] private[ReactComponentB](name: String, isf: InitStateFn[P, S]) {
+  final class PS[P, S] private[ReactComponentB](name: String, isf: InitStateFn[P, S])(implicit propsConverter: PropsConverter[P]) {
     def noBackend: PSB[P, S, Unit] =
       new PSB(name, isf, None)
 
@@ -100,9 +120,9 @@ object ReactComponentB {
   }
 
   // ===================================================================================================================
-  final class PSB[P, S, B] private[ReactComponentB](name: String, isf: InitStateFn[P, S], ibf: InitBackendFn[P, S, B]) {
+  final class PSB[P, S, B] private[ReactComponentB](name: String, isf: InitStateFn[P, S], ibf: InitBackendFn[P, S, B])(implicit propsConverter: PropsConverter[P]) {
 
-    def render(f: DuringCallbackU[P, S, B] => ReactElement): PSBR[P, S, B] =
+    def render(f: (DuringCallbackU[P, S, B]) => ReactElement): PSBR[P, S, B] =
       new PSBR(name, isf, ibf, f)
 
     def renderPCS(f: (DuringCallbackU[P, S, B], P, PropsChildren, S) => ReactElement): PSBR[P, S, B] =
@@ -144,7 +164,7 @@ object ReactComponentB {
   }
 
   // ===================================================================================================================
-  final class PSBR[P, S, B] private[ReactComponentB](name: String, isf: InitStateFn[P, S], ibf: InitBackendFn[P, S, B], rf: RenderFn[P, S, B]) {
+  final class PSBR[P, S, B] private[ReactComponentB](name: String, isf: InitStateFn[P, S], ibf: InitBackendFn[P, S, B], rf: RenderFn[P, S, B])(implicit propsConverter: PropsConverter[P]) {
     def domType[N <: TopNode]: ReactComponentB[P, S, B, N] =
       new ReactComponentB(name, isf, ibf, rf, emptyLifeCycle, Vector.empty)
   }
@@ -172,7 +192,7 @@ final class ReactComponentB[P,S,B,N <: TopNode](val name: String,
                                                 ibf     : InitBackendFn[P, S, B],
                                                 rf      : RenderFn[P, S, B],
                                                 lc      : LifeCycle[P, S, B, N],
-                                                jsMixins: Vector[JAny]) {
+                                                jsMixins: Vector[JAny])(implicit propsConverter: PropsConverter[P]) {
 
   @inline private def copy(name    : String                  = name,
                            isf     : InitStateFn[P, S]       = isf,
@@ -333,7 +353,7 @@ final class ReactComponentB[P,S,B,N <: TopNode](val name: String,
   def buildU(implicit ev: UnitPropProof[P]): ConstProps[P, S, B, N] =
     propsUnit.build
 
-  final class Builder[Output] private[ReactComponentB](buildFn: BuildFn[Output]) {
+  final class Builder[Output] private[ReactComponentB](buildFn: BuildFn[Output])(implicit propsConverter: PropsConverter[P]) {
 
     def buildSpec: ReactComponentSpec[P, S, B, N] = {
 
@@ -345,19 +365,21 @@ final class ReactComponentB[P,S,B,N <: TopNode](val name: String,
       if (ibf.isDefined)
         spec("backend") = null
 
+      spec("_propsConverter") = propsConverter.asInstanceOf[JAny]
+
       spec("render") = rf: ThisFunction
 
       @inline def setFnPS[$, A, R](a: ($, P, S) => A)(fn: UndefOr[A => CallbackTo[R]], name: String): Unit =
         fn.foreach { f =>
-          val g = ($: $, p: WrapObj[P], s: WrapObj[S]) =>
-            f(a($, p.v, s.v)).runNow()
+          val g = ($: $, p: ReactProps, s: WrapObj[S]) =>
+            f(a($, propsConverter.fromProps(p), s.v)).runNow()
           spec(name) = g: ThisFunction
         }
 
       @inline def setFnP[$, A, R](a: ($, P) => A)(fn: UndefOr[A => CallbackTo[R]], name: String): Unit =
         fn.foreach { f =>
-          val g = ($: $, p: WrapObj[P], s: WrapObj[S]) =>
-            f(a($, p.v)).runNow()
+          val g = ($: $, p: ReactProps, s: WrapObj[S]) =>
+            f(a($, propsConverter.fromProps(p))).runNow()
           spec(name) = g: ThisFunction
         }
 

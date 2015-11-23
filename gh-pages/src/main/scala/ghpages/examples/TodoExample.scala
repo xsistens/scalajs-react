@@ -3,6 +3,9 @@ package ghpages.examples
 import ghpages.GhPagesMacros
 import japgolly.scalajs.react._, vdom.prefix_<^._
 import ghpages.examples.util.SideBySide
+import org.scalajs.dom
+
+import scala.scalajs.js
 
 object TodoExample {
 
@@ -61,7 +64,21 @@ object TodoExample {
 
   // EXAMPLE:START
 
-  val TodoList = ReactComponentB[List[String]]("TodoList")
+  class MyPropsConverter extends PropsConverter[List[String]] {
+    override def fromProps(p: ReactProps): List[String] = {
+      println(":(")
+      dom.console.log(p)
+      val x = p.asInstanceOf[js.Dynamic].list.asInstanceOf[js.Array[String]]
+      dom.console.log(x)
+      x.toList
+    }
+
+    override def toProps(p: List[String]): ReactProps =
+      js.Dynamic.literal("list" -> p.toJsArray).asInstanceOf[ReactProps]
+
+  }
+
+  val TodoList = ReactComponentB[List[String]]("TodoList")(new MyPropsConverter)
     .render_P(props => {
       def createItem(itemText: String) = <.li(itemText)
       <.ul(props map createItem)

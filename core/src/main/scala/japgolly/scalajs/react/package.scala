@@ -2,7 +2,7 @@ package japgolly.scalajs
 
 import org.scalajs.dom, dom.html
 import scala.scalajs.js
-import js.{Dynamic, Object, Any => JAny, Function => JFn}
+import scala.scalajs.js.{Any => JAny, Function => JFn, Dynamic, Object}
 
 package object react extends ReactEventAliases {
 
@@ -72,8 +72,12 @@ package object react extends ReactEventAliases {
 
   import CompScope._
 
-  @inline implicit final class ReactExt_CanGetInitialState[P, S](private val c: CanGetInitialState[P, S]) extends AnyVal {
-    def getInitialState(p: P): S = c._getInitialState(WrapObj(p)).v
+  @inline implicit final class ReactExt_CanGetInitialState[P, S](private val c: CanGetInitialState[P, S] with HasProps[P]) extends AnyVal {
+    def getInitialState(p: P): S = c._getInitialState(c._propsConverter.toProps(p)).v
+  }
+
+  @inline implicit final class ReactExt_CanGetInitialStateUnit[Unit, S](private val c: CanGetInitialState[Unit, S]) extends AnyVal {
+    def getInitialState(): S = c._getInitialState(js.Dynamic.literal().asInstanceOf[ReactProps]).v
   }
 
   // Yes, the below can be reduced by `type Id[A] = A` and F[_] = Id | CallbackTo but Id causes problems with
@@ -81,7 +85,7 @@ package object react extends ReactEventAliases {
   // I will bear the copy-paste burden. It's static, small and contained.
 
   @inline implicit final class ReactExt_HasPropsD[P](private val c: HasProps[P] with ReadDirect) extends AnyVal {
-    @inline def props        : P             = c._props.v
+    @inline def props        : P             = c._propsConverter.fromProps(c._props)
     @inline def propsChildren: PropsChildren = c._props.children
     @inline def propsDynamic : js.Dynamic    = c._props.asInstanceOf[js.Dynamic]
 
@@ -205,4 +209,13 @@ package object react extends ReactEventAliases {
     @inline def only: Option[ReactNode] =
       try { Some(React.Children.only(c))} catch { case t: Throwable => None}
   }
+
+  implicit def ReactComponentCToReactClass[P,S,B,N <: TopNode](comp: ReactComponentC[P,S,B,N]): ReactClass[P,S,B,N] =
+    comp.reactClass
+
+  implicit def ReactComponentCToUndefOrReactClass[P,S,B,N <: TopNode](comp: ReactComponentC[P,S,B,N]): js.UndefOr[ReactClass[P,S,B,N]] =
+    js.UndefOr.any2undefOrA(comp.reactClass)
+
+  @js.native
+  trait ReactProps extends js.Object
 }

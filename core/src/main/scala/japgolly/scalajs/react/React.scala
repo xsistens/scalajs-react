@@ -33,16 +33,16 @@ trait React extends Object {
    * Create and return a new `ReactElement` of the given type. The type argument can be either an html tag name string
    * (eg. 'div', 'span', etc), or a [[ReactClass]] (created via [[React.createClass]]).
    */
-  def createElement[P,S,B,N <: TopNode](t: ReactClass[P,S,B,N], props: WrapObj[P], children: ReactNode*): ReactElement = js.native
+  def createElement[P,S,B,N <: TopNode](t: ReactClass[P,S,B,N], props: ReactProps, children: ReactNode*): ReactElement = js.native
 
   /**
    * Create and return a new `ReactElement` of the given type. The type argument can be either an html tag name string
    * (eg. 'div', 'span', etc), or a [[ReactClass]] (created via [[React.createClass]]).
    */
-  def createElement(tag: String, props: Object, children: ReactNode*): ReactDOMElement = js.native
+  def createElement(tag: String, props: ReactProps, children: ReactNode*): ReactDOMElement = js.native
 
-  def createElement(fc: FunctionalComponent[Nothing], props: Object, children: ReactNode*): ReactDOMElement = js.native
-  def createElement(fc: FunctionalComponent.WithChildren[Nothing], props: Object, children: ReactNode*): ReactDOMElement = js.native
+  def createElement(fc: FunctionalComponent[Nothing], props: ReactProps, children: ReactNode*): ReactDOMElement = js.native
+  def createElement(fc: FunctionalComponent.WithChildren[Nothing], props: ReactProps, children: ReactNode*): ReactDOMElement = js.native
 
   /** Verifies the object is a ReactElement. */
   def isValidElement(o: JAny): Boolean = js.native
@@ -53,7 +53,7 @@ trait React extends Object {
    * New children will replace existing children. Unlike `React.addons.cloneWithProps`, `key` and `ref` from the
    * original element will be preserved. There is no special behavior for merging any props (unlike `cloneWithProps`).
    */
-  def cloneElement(element: ReactElement, props: Object, children: ReactNode*): ReactElement = js.native
+  def cloneElement(element: ReactElement, props: ReactProps, children: ReactNode*): ReactElement = js.native
 
   /**
    * React.DOM provides convenience wrappers around React.createElement for DOM components. These should only be used

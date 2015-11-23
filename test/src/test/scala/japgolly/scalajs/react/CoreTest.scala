@@ -1,6 +1,5 @@
 package japgolly.scalajs.react
 
-import japgolly.scalajs.react.ReactComponentC.ConstProps
 import monocle.macros.Lenses
 import utest._
 import scala.scalajs.js, js.{Array => JArray}
@@ -42,7 +41,7 @@ object CoreTest extends TestSuite {
     }
     lazy val CB = ElementFactory.noProps(js.constructorOf[CBC], classOf[CBC])
     @ScalaJSDefined
-    class H1C extends ReactComponentNoState[String, HTMLElement] {
+    class H1C(initialProps: ReactProps) extends ReactComponentNoState[String, HTMLElement](initialProps) {
       override def render() = h1(props)
     }
     lazy val H1 = ElementFactory.requiredProps(js.constructorOf[H1C], classOf[H1C])
@@ -73,7 +72,7 @@ object CoreTest extends TestSuite {
 
     'scalatags {
       @ScalaJSDefined
-      class ScalatagsC extends ReactComponentNoState[ReactElement, HTMLElement] {
+      class ScalatagsC(initialProps: ReactProps) extends ReactComponentNoState[ReactElement, HTMLElement](initialProps) {
         override def render() = props
       }
       val Scalatags = ElementFactory.requiredProps(js.constructorOf[ScalatagsC], classOf[ScalatagsC])
@@ -229,7 +228,7 @@ object CoreTest extends TestSuite {
       'allConditional {
         val rcb = ReactComponentB[(Boolean,Boolean)]("C").render_P(p => div(classSet("p1" -> p._1, "p2" -> p._2))("x")).build
         @ScalaJSDefined
-        class AllConditionalC extends ReactComponentNoState[(Boolean, Boolean), HTMLElement] {
+        class AllConditionalC(initialProps: ReactProps) extends ReactComponentNoState[(Boolean, Boolean), HTMLElement](initialProps) {
           override def render() = div(classSet("p1" -> props._1, "p2" -> props._2))("x")
         }
         val es6 = ElementFactory.requiredProps(js.constructorOf[AllConditionalC], classOf[AllConditionalC])
@@ -245,7 +244,7 @@ object CoreTest extends TestSuite {
       'hasMandatory {
         val rcb = ReactComponentB[Boolean]("C").render_P(p => div(classSet1("mmm", "ccc" -> p))("x")).build
         @ScalaJSDefined
-        class HasMandatoryC extends ReactComponentNoState[Boolean, HTMLElement] {
+        class HasMandatoryC(initialProps: ReactProps) extends ReactComponentNoState[Boolean, HTMLElement](initialProps) {
           override def render() = div(classSet1("mmm", "ccc" -> props))("x")
         }
         val es6 = ElementFactory.requiredProps(js.constructorOf[HasMandatoryC], classOf[HasMandatoryC])
@@ -260,7 +259,7 @@ object CoreTest extends TestSuite {
         val rcb = ReactComponentB[Boolean]("C").render_P(p =>
           div(cls := "neat", classSet1("mmm", "ccc" -> p), cls := "slowclap", "x")).build
         @ScalaJSDefined
-        class AppendsC extends ReactComponentNoState[Boolean, HTMLElement] {
+        class AppendsC(initialProps: ReactProps) extends ReactComponentNoState[Boolean, HTMLElement](initialProps) {
           override def render() = div(cls := "neat", classSet1("mmm", "ccc" -> props), cls := "slowclap", "x")
         }
         val es6 = ElementFactory.requiredProps(js.constructorOf[AppendsC], classOf[AppendsC])
@@ -291,7 +290,7 @@ object CoreTest extends TestSuite {
       'required {
         val rcb = ReactComponentB[String]("C").render_P(name => div("Hi ", name)).build
         @ScalaJSDefined
-        class RequiredC extends ReactComponentNoState[String, HTMLElement] {
+        class RequiredC(initialProps: ReactProps) extends ReactComponentNoState[String, HTMLElement](initialProps) {
           override def render() = div("Hi ", props)
         }
         val es6 = ElementFactory.requiredProps(js.constructorOf[RequiredC], classOf[RequiredC])
@@ -304,7 +303,7 @@ object CoreTest extends TestSuite {
 
       val rcb = ReactComponentB[String]("C").render_P(name => div("Hey ", name)).propsDefault("man").build
       @ScalaJSDefined
-      class OptionalC extends ReactComponentNoState[String, HTMLElement] {
+      class OptionalC(initialProps: ReactProps) extends ReactComponentNoState[String, HTMLElement](initialProps) {
         override def render() = div("Hi ", props)
       }
       val es6 = ElementFactory.defaultProps(js.constructorOf[OptionalC], classOf[OptionalC])("man")
@@ -328,7 +327,7 @@ object CoreTest extends TestSuite {
       'always {
         val rcb = ReactComponentB[String]("C").render_P(name => div("Hi ", name)).propsConst("there").build
         @ScalaJSDefined
-        class AlwaysC extends ReactComponentNoState[String, HTMLElement] {
+        class AlwaysC(initialProps: ReactProps) extends ReactComponentNoState[String, HTMLElement](initialProps) {
           override def render() = div("Hi ", props)
         }
         val es6 = ElementFactory.constantProps(js.constructorOf[AlwaysC], classOf[AlwaysC])("there")

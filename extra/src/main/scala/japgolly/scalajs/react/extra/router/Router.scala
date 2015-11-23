@@ -13,7 +13,8 @@ object Router {
   def componentUnbuilt[Page](baseUrl: BaseUrl, cfg: RouterConfig[Page]) =
     componentUnbuiltC(baseUrl, cfg, new RouterLogic(baseUrl, cfg))
 
-  def componentUnbuiltC[Page](baseUrl: BaseUrl, cfg: RouterConfig[Page], lgc: RouterLogic[Page]) =
+  def componentUnbuiltC[Page](baseUrl: BaseUrl, cfg: RouterConfig[Page], lgc: RouterLogic[Page]) = {
+    implicit val propsConverter: PropsConverter[Unit] = new DefaultPropsConverter[Unit]
     ReactComponentB[Unit]("Router")
       .initialStateCB    (     lgc.syncToWindowUrl)
       .backend           (_ => new OnUnmount.Backend)
@@ -23,6 +24,7 @@ object Router {
       .configure(
         EventListener.install("popstate", _ => lgc.ctl.refresh, _ => dom.window),
         Listenable.installU(_ => lgc, $ => $ setStateCB lgc.syncToWindowUrl))
+  }
 
   def componentAndLogic[Page](baseUrl: BaseUrl, cfg: RouterConfig[Page]): (Router[Page], RouterLogic[Page]) = {
     val l = new RouterLogic(baseUrl, cfg)

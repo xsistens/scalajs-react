@@ -1,12 +1,12 @@
 package japgolly.scalajs.react.vdom
 
 import scala.scalajs.js
-import japgolly.scalajs.react.{ReactElement, ReactNode, React}
+import japgolly.scalajs.react.{ReactProps, ReactElement, ReactNode, React}
 
 private[vdom] final class Builder {
 
   private[this] var className: js.UndefOr[js.Any] = js.undefined
-  private[this] var props    = new js.Object
+  private[this] var props: ReactProps    = (new js.Object).asInstanceOf[ReactProps]
   private[this] var style    = new js.Object
   private[this] var children = new js.Array[ReactNode]()
 

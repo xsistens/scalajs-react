@@ -1,8 +1,9 @@
 package japgolly.scalajs.react
 
+
 import scala.scalajs.js
-import js.{UndefOr, Object, Function => JFn}
-import js.annotation.{JSBracketAccess, JSName}
+import scala.scalajs.js.{Function => JFn, UndefOr, Object}
+import scala.scalajs.js.annotation.{JSBracketAccess, JSName}
 
 /**
  * Here we break React's `this` into tiny little bits, then stitch them together to use type-safety to enforce the
@@ -16,9 +17,13 @@ object CompScope {
     def isMounted(): Boolean = js.native
   }
 
+//  @ScalaJSDefined
+//  abstract class HasProps[+Props](fromProps: (ReactProps) => Props) extends HasPropsJS[Props]
+
   @js.native
-  trait HasProps[+Props] extends Object {
-    @JSName("props") private[react] def _props: WrapObj[Props] with PropsMixedIn = js.native
+  trait HasProps[Props] extends Object {
+    @JSName("props") private[react] def _props: ReactProps with PropsMixedIn = js.native
+    private[react] val _propsConverter: PropsConverter[Props] = js.native
   }
 
   @js.native
@@ -39,8 +44,8 @@ object CompScope {
   }
 
   @js.native
-  trait CanGetInitialState[-Props, +State] extends Object {
-    @JSName("getInitialState") private[react] def _getInitialState(s: WrapObj[Props]): WrapObj[State] = js.native
+  trait CanGetInitialState[Props, +State] extends Object {
+    @JSName("getInitialState") private[react] def _getInitialState(p: ReactProps): WrapObj[State] = js.native
   }
 
   /** Functions available to components when they're mounted. */
@@ -193,7 +198,7 @@ trait ReactComponentM_[+Node <: TopNode]
 trait ReactComponentCU[Props, State, +Backend, +Node <: TopNode]
   extends ReactComponentC_
      with ReactComponentTypeAuxJ[Props, State, Backend, Node] {
-  def apply(props: WrapObj[Props], children: ReactNode*): ReactComponentU[Props, State, Backend, Node] = js.native
+  def apply(props: ReactProps, children: ReactNode*): ReactComponentU[Props, State, Backend, Node] = js.native
 }
 
 /** An unmounted Scala component. */

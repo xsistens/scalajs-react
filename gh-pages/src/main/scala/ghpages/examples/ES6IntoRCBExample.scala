@@ -23,7 +23,7 @@ object ES6IntoRCBExample {
   case class Props(text: String)
 
   @ScalaJSDefined
-  class TodoListItemC extends ReactComponentNoState[Props, TopNode] {
+  class TodoListItemC(initialProps: ReactProps) extends ReactComponentNoState[Props, TopNode](initialProps) {
     def render() = {
       <.li(props.text)
     }

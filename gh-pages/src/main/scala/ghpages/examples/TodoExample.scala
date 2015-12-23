@@ -62,11 +62,10 @@ object TodoExample {
 
   // EXAMPLE:START
 
-  val TodoList = ReactComponentB[List[String]]("TodoList")(new MyPropsConverter)
-    .render_P { props =>
   class MyPropsConverter extends PropsConverter[List[String]] {
     override def fromProps(p: ReactProps): List[String] = {
-     p.asInstanceOf[js.Dynamic].list.asInstanceOf[js.Array[String]]
+      val list = p.asInstanceOf[js.Dynamic].list.asInstanceOf[js.Array[String]]
+      list.toList
     }
 
     override def toProps(p: List[String]): ReactProps =
@@ -75,11 +74,10 @@ object TodoExample {
   }
 
   val TodoList = ReactComponentB[List[String]]("TodoList")(new MyPropsConverter)
-    .render_P(props => {
+    .render_P{ props =>
       def createItem(itemText: String) = <.li(itemText)
       <.ul(props map createItem)
-    }
-    .build
+    }.build
 
   case class State(items: List[String], text: String)
 

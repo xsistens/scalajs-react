@@ -8,10 +8,14 @@ import scala.scalajs.js.annotation.{JSName, ScalaJSDefined}
 
 @js.native
 @JSName("React.Component")
-private[react] abstract class ReactJSComponent[P, S](initialProps: ReactProps) extends js.Object {
+private[react] abstract class ReactJSComponent[P, S, C, CC](initialProps: ReactProps) extends js.Object {
   val displayName: String = js.native
 
   var refs: RefsObject = js.native
+
+  var context: C = js.native
+
+  def getChildContext(): CC = js.native
 
   @JSName("state")
   private[react] var _state: WrapObj[S] = js.native
@@ -48,7 +52,7 @@ private[react] abstract class ReactJSComponent[P, S](initialProps: ReactProps) e
 }
 
 @ScalaJSDefined
-private[react] abstract class BasicReactComponent[P, S, N <: TopNode](initialProps: ReactProps) extends ReactJSComponent[P, S](initialProps) {
+private[react] abstract class BasicReactComponent[P, S, C, CC, N <: TopNode](initialProps: ReactProps) extends ReactJSComponent[P, S, C, CC](initialProps) {
   def getRef[R <: Ref](ref: R) = ref(refs)
 
   def render(): ReactElement
@@ -63,21 +67,21 @@ private[react] abstract class BasicReactComponent[P, S, N <: TopNode](initialPro
 }
 
 @ScalaJSDefined
-abstract class ReactComponentNoProps[S, N <: TopNode] extends BasicReactComponent[Unit, S, N](WrapObj(Unit).asInstanceOf[ReactProps]) {
+abstract class ReactComponentNoProps[S, N <: TopNode] extends BasicReactComponent[Unit, S, Unit, Unit, N](WrapObj(Unit).asInstanceOf[ReactProps]) {
   def initialState(): S
 
   @JSName("_state")
   def state: S = _state.v
 
   @JSName("_modState")
-  def modState(func: (S) => S, callback: Callback = Callback.empty): Callback =
-    CallbackTo(_modState((s: WrapObj[S]) => WrapObj(func(s.v)), callback.toJsCallback))
+  def modState(func: (S) => S, callback: js.UndefOr[Callback] = js.undefined): Callback =
+    CallbackTo(_modState((s: WrapObj[S]) => WrapObj(func(s.v)), callback.flatMap(_.toJsCallback)))
 
   _state = WrapObj(initialState())
 
   @JSName("_setState")
-  def setState(newState: S, callback: Callback = Callback.empty): Callback =
-    CallbackTo(_setState(WrapObj(newState), callback.toJsCallback))
+  def setState(newState: S, callback: js.UndefOr[Callback] = js.undefined): Callback =
+    CallbackTo(_setState(WrapObj(newState), callback.flatMap(_.toJsCallback)))
 
   @JSName("componentWillUpdate")
   override def _componentWillUpdate(nextProps: ReactProps, nextState: WrapObj[S]): Unit =
@@ -88,7 +92,7 @@ abstract class ReactComponentNoProps[S, N <: TopNode] extends BasicReactComponen
 }
 
 @ScalaJSDefined
-abstract class ReactComponentNoState[P, N <: TopNode](initialProps: ReactProps) extends BasicReactComponent[P, Unit, N](initialProps) {
+abstract class ReactComponentNoState[P, N <: TopNode](initialProps: ReactProps) extends BasicReactComponent[P, Unit, Unit, Unit, N](initialProps) {
 
   def propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]
 
@@ -117,11 +121,56 @@ abstract class ReactComponentNoState[P, N <: TopNode](initialProps: ReactProps) 
 }
 
 @ScalaJSDefined
-abstract class ReactComponentNoPropsAndState[N <: react.TopNode] extends BasicReactComponent[Unit, Unit, N](WrapObj(Unit).asInstanceOf[ReactProps])
+abstract class ReactComponentNoPropsAndState[N <: react.TopNode] extends BasicReactComponent[Unit, Unit, Unit, Unit, N](WrapObj(Unit).asInstanceOf[ReactProps])
 
 @ScalaJSDefined
-abstract class ReactComponent[P, S, N <: react.TopNode](initialProps: ReactProps) extends BasicReactComponent[P, S, N](initialProps) {
+abstract class ReactComponent[P, S, N <: react.TopNode](initialProps: ReactProps) extends BasicReactComponent[P, S, Unit, Unit, N](initialProps) {
   def propsConverter: PropsConverter[P] = new DefaultPropsConverter[P]
+
+  private var p: P = propsConverter.fromProps(initialProps)
+
+  _state = {
+    WrapObj(initialState(if (js.isUndefined(initialProps) || initialProps == null) throw new Exception("props are not set correctly") else props))
+  }
+
+  def initialState(props: P): S
+
+  @JSName("_state")
+  def state: S = _state.v
+
+  @JSName("_modState")
+  def modState(func: (S) => S, callback: js.UndefOr[Callback] = js.undefined): Callback =
+    CallbackTo(_modState((s: WrapObj[S]) => WrapObj(func(s.v)), callback.flatMap(_.toJsCallback)))
+
+  @JSName("_props")
+  def props: P = p
+
+  @JSName("_setState")
+  def setState(newState: S, callback: js.UndefOr[Callback] = js.undefined): Callback =
+    CallbackTo(_setState(WrapObj(newState), callback.flatMap(_.toJsCallback)))
+
+  @JSName("componentWillReceiveProps")
+  override def _componentWillReceiveProps(nextProps: ReactProps): Unit = {
+    val newProps = propsConverter.fromProps(nextProps)
+    componentWillReceiveProps(newProps)
+    p = newProps
+  }
+
+  @JSName("_componentWillReceiveProps")
+  def componentWillReceiveProps(nextProps: P): Unit = ()
+
+  @JSName("componentWillUpdate")
+  override def _componentWillUpdate(nextProps: ReactProps, nextState: WrapObj[S]): Unit = {
+    componentWillUpdate(propsConverter.fromProps(nextProps), nextState.v)
+  }
+
+  @JSName("_componentWillUpdate")
+  def componentWillUpdate(nextProps: P, nextState: S): Unit = ()
+}
+
+@ScalaJSDefined
+abstract class ReactComponentWithContextJS[P <: js.Object, S, C, CC, N <: react.TopNode](initialProps: ReactProps) extends BasicReactComponent[P, S, C, CC, N](initialProps) {
+  def propsConverter: PropsConverter[P] = new JSPropsConverter[P]
 
   private var p: P = propsConverter.fromProps(initialProps)
 
@@ -172,14 +221,4 @@ abstract class ReactComponentNoStateJS[P <: js.Object, N <: react.TopNode](initi
 @ScalaJSDefined
 abstract class ReactComponentJS[P <: js.Object, S, N <: react.TopNode](initialProps: ReactProps) extends ReactComponent[P, S, N](initialProps) {
   override def propsConverter: PropsConverter[P] = new JSPropsConverter[P]
-}
-
-@js.native
-trait WithContext[C] extends js.Any {
-  var context: C = js.native
-}
-
-@js.native
-trait WithChildContext[C] extends js.Any {
-  def getChildContext(): C = js.native
 }

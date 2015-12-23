@@ -66,6 +66,8 @@ package object react extends ReactEventAliases {
   @inline implicit def reactNodeInhabitableAt[T <% ReactNode](v: js.Array[T])        : ReactNode = v.toReactNodeArray
   @inline implicit def reactNodeInhabitableC [T <% ReactNode](v: TraversableOnce[T]) : ReactNode = v.toReactNodeArray
   @inline implicit def reactNodeInhabitablePC                (v: PropsChildren)      : ReactNode = v.asInstanceOf[ReactNode]
+  @inline implicit def reactNodeInhabitableO[T <% ReactNode] (v: Option[T])          : ReactNode = v.toSeq.toReactNodeArray
+  @inline implicit def reactNodeInhabitableU[T <% ReactNode] (v: T)                  : js.UndefOr[ReactNode] = js.UndefOr.any2undefOrA(v)
 
   // ===================================================================================================================
 
